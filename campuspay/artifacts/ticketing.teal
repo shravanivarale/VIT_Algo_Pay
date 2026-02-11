@@ -1,0 +1,161 @@
+#pragma version 8
+txn NumAppArgs
+int 0
+==
+bnz main_l6
+txna ApplicationArgs 0
+method "setup(uint64,uint64)void"
+==
+bnz main_l5
+txna ApplicationArgs 0
+method "buy_ticket(pay)void"
+==
+bnz main_l4
+err
+main_l4:
+txn OnCompletion
+int NoOp
+==
+txn ApplicationID
+int 0
+!=
+&&
+assert
+callsub buyticketcaster_3
+int 1
+return
+main_l5:
+txn OnCompletion
+int NoOp
+==
+txn ApplicationID
+int 0
+!=
+&&
+assert
+callsub setupcaster_2
+int 1
+return
+main_l6:
+txn OnCompletion
+int NoOp
+==
+bnz main_l16
+txn OnCompletion
+int OptIn
+==
+bnz main_l15
+txn OnCompletion
+int CloseOut
+==
+bnz main_l14
+txn OnCompletion
+int UpdateApplication
+==
+bnz main_l13
+txn OnCompletion
+int DeleteApplication
+==
+bnz main_l12
+err
+main_l12:
+int 0
+return
+main_l13:
+int 0
+return
+main_l14:
+txn ApplicationID
+int 0
+!=
+assert
+int 1
+return
+main_l15:
+txn ApplicationID
+int 0
+!=
+assert
+int 1
+return
+main_l16:
+txn ApplicationID
+int 0
+==
+assert
+int 1
+return
+
+// setup
+setup_0:
+proto 2 0
+byte "Price"
+frame_dig -2
+app_global_put
+byte "NftId"
+frame_dig -1
+app_global_put
+byte "Creator"
+txn Sender
+app_global_put
+retsub
+
+// buy_ticket
+buyticket_1:
+proto 1 0
+frame_dig -1
+gtxns Amount
+byte "Price"
+app_global_get
+==
+assert
+frame_dig -1
+gtxns Receiver
+global CurrentApplicationAddress
+==
+assert
+itxn_begin
+int axfer
+itxn_field TypeEnum
+byte "NftId"
+app_global_get
+itxn_field XferAsset
+txn Sender
+itxn_field AssetReceiver
+int 1
+itxn_field AssetAmount
+itxn_submit
+retsub
+
+// setup_caster
+setupcaster_2:
+proto 0 0
+int 0
+dup
+txna ApplicationArgs 1
+btoi
+frame_bury 0
+txna ApplicationArgs 2
+btoi
+frame_bury 1
+frame_dig 0
+frame_dig 1
+callsub setup_0
+retsub
+
+// buy_ticket_caster
+buyticketcaster_3:
+proto 0 0
+int 0
+txn GroupIndex
+int 1
+-
+frame_bury 0
+frame_dig 0
+gtxns TypeEnum
+int pay
+==
+assert
+frame_dig 0
+callsub buyticket_1
+retsub

@@ -1,0 +1,6 @@
+pyteal>=0.20.1
+algokit-utils>=1.0
+pytest
+flake8
+mypy
+black
