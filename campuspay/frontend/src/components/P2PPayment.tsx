@@ -30,7 +30,7 @@ const P2PPayment: React.FC = () => {
                 setIsScanning(false);
                 scanner.clear();
             }, (error) => {
-                console.warn(error);
+                // Scanning... (Suppress errors for cleaner console)
             });
 
             return () => {
@@ -213,8 +213,8 @@ const P2PPayment: React.FC = () => {
                             type="submit"
                             disabled={loading || !isConnected}
                             className={`w-full py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2 group ${loading || !isConnected
-                                    ? 'bg-cyber-dark border border-white/5 text-slate-600 cursor-not-allowed'
-                                    : 'btn-cyber-filled hover:shadow-[0_0_40px_rgba(0,240,255,0.4)]'
+                                ? 'bg-cyber-dark border border-white/5 text-slate-600 cursor-not-allowed'
+                                : 'btn-cyber-filled hover:shadow-[0_0_40px_rgba(0,240,255,0.4)]'
                                 }`}
                         >
                             {loading ? <Loader className="animate-spin text-white" /> : <Send className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
@@ -232,10 +232,10 @@ const P2PPayment: React.FC = () => {
                                 className="mt-6"
                             >
                                 <div className={`p-4 rounded-xl border backdrop-blur-md flex items-start gap-3 ${status.includes('Success')
-                                        ? 'bg-green-500/10 border-green-500/30 text-green-400'
-                                        : status.includes('Failed')
-                                            ? 'bg-red-500/10 border-red-500/30 text-red-400'
-                                            : 'bg-cyber-neon/10 border-cyber-neon/30 text-cyber-neon'
+                                    ? 'bg-green-500/10 border-green-500/30 text-green-400'
+                                    : status.includes('Failed')
+                                        ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                                        : 'bg-cyber-neon/10 border-cyber-neon/30 text-cyber-neon'
                                     }`}>
                                     <div className={`mt-0.5 w-2 h-2 rounded-full ${status.includes('Success') ? 'bg-green-400' : 'bg-cyber-neon animate-pulse'}`} />
                                     <div className="flex-1">

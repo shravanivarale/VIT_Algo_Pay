@@ -88,17 +88,24 @@ campuspay/
 
 ---
 
-## 5. UI/UX Design System
+## 5. UI/UX Design System (VIT Algo Pay)
 - **Theme**: "VIT Cyber-Core"
   - **Palette**: Neon Cyan (`#00f0ff`), Electric Purple (`#7000ff`), Deep Space (`#050510`).
-  - **Background**: Interactive 3D Particle Network (Three.js / React Three Fiber).
-  - **Components**: Glassmorphism cards with holographic hover effects.
+  - **Background**: Interactive 3D Particle Network (Three.js) with "Warp Speed" effects.
+  - **Intro Animation**: Cinematic 5-second reveal sequence ("Campus Finance Reimagined").
+  - **Components**: Glassmorphism cards with holographic hover effects and "reveal" interactions.
   - **Typography**: Inter (Body) + Space Mono (Data/Crypto).
-  - **Animations**: Framer Motion for page transitions and staggering.
+  - **Animations**: Framer Motion for page transitions, staggering, and smash effects.
 
 ---
 
-## 6. Smart Contract Specifications
+## 6. Testing & Verification
+We have a dedicated testing guide to help you verify all features.
+👉 **[Read the Testing Guide](./TESTING_GUIDE.md)**
+
+---
+
+## 7. Smart Contract Specifications
 
 ### **Crowdfunding (Stateful)**
 - **Global Schema**: 4 Uints (Target, Current, Deadline, TotalDonated), 1 Bytes (Beneficiary).

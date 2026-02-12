@@ -80,7 +80,7 @@ const BillSplit: React.FC = () => {
 
             const signedParts = await peraWallet.signTransaction([signerGroup]);
             setStatus("PARTIAL SIGNATURE APPENDED TO PAYLOAD.");
-            console.log("Signed parts:", signedParts);
+            // Payload ready for transmission
 
         } catch (error) {
             console.error(error);

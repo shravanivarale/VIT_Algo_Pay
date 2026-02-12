@@ -5,7 +5,7 @@ import P2PPayment from './components/P2PPayment';
 import BillSplit from './components/BillSplit';
 import Fundraising from './components/Fundraising';
 import Ticketing from './components/Ticketing';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Globe, Users, Ticket, Rocket } from 'lucide-react';
 
 const Dashboard = () => {
@@ -62,31 +62,33 @@ const Dashboard = () => {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
-        className="text-center mb-20 pt-10"
+        className="text-center mb-16 pt-10 relative z-10"
       >
-        <h1 className="text-6xl md:text-8xl font-black mb-6 tracking-tighter">
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-300 to-slate-500">VIT</span>
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyber-neon to-cyber-purple ml-4 drop-shadow-[0_0_15px_rgba(0,240,255,0.5)]">ALGO</span>
-          <span className="text-white ml-4">PAY</span>
-        </h1>
-        <p className="text-cyber-neon/80 text-xl font-mono tracking-[0.2em] uppercase mb-8">
-          Next Gen Campus Finance Protocol
-        </p>
+        <div className="inline-block p-12 rounded-3xl bg-cyber-dark/30 backdrop-blur-md border border-white/5 shadow-2xl">
+          <h1 className="text-6xl md:text-8xl font-black mb-6 tracking-tighter drop-shadow-2xl">
+            <span className="text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">VIT</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyber-neon to-cyber-purple ml-4 drop-shadow-[0_0_25px_rgba(0,240,255,0.6)]">ALGO</span>
+            <span className="text-white ml-4 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">PAY</span>
+          </h1>
+          <p className="text-cyber-neon/90 text-xl font-mono tracking-[0.2em] uppercase mb-8 drop-shadow-lg font-bold">
+            Next Gen Campus Finance Protocol
+          </p>
 
-        <div className="flex justify-center gap-6">
-          <div className="flex flex-col items-center">
-            <span className="text-2xl font-bold text-white">3.5s</span>
-            <span className="text-[10px] text-slate-500 tracking-widest uppercase">Latency</span>
-          </div>
-          <div className="w-px h-12 bg-white/10" />
-          <div className="flex flex-col items-center">
-            <span className="text-2xl font-bold text-white">&lt;0.001</span>
-            <span className="text-[10px] text-slate-500 tracking-widest uppercase">Fee</span>
-          </div>
-          <div className="w-px h-12 bg-white/10" />
-          <div className="flex flex-col items-center">
-            <span className="text-2xl font-bold text-white">Zero</span>
-            <span className="text-[10px] text-slate-500 tracking-widest uppercase">Carbon</span>
+          <div className="flex justify-center gap-8">
+            <div className="flex flex-col items-center">
+              <span className="text-3xl font-bold text-white drop-shadow-lg">3.5s</span>
+              <span className="text-[10px] text-cyber-neon tracking-widest uppercase">Latency</span>
+            </div>
+            <div className="w-px h-12 bg-white/20" />
+            <div className="flex flex-col items-center">
+              <span className="text-3xl font-bold text-white drop-shadow-lg">&lt;0.001</span>
+              <span className="text-[10px] text-cyber-neon tracking-widest uppercase">Fee</span>
+            </div>
+            <div className="w-px h-12 bg-white/20" />
+            <div className="flex flex-col items-center">
+              <span className="text-3xl font-bold text-white drop-shadow-lg">Zero</span>
+              <span className="text-[10px] text-cyber-neon tracking-widest uppercase">Carbon</span>
+            </div>
           </div>
         </div>
       </motion.div>
@@ -96,30 +98,37 @@ const Dashboard = () => {
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 md:grid-cols-2 gap-6"
+        className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full"
       >
         {modules.map((mod) => (
           <motion.div
             key={mod.title}
             variants={item}
-            whileHover={{ scale: 1.02, translateY: -5 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => navigate(mod.path)}
-            className={`glass-card p-1 group cursor-pointer relative overflow-hidden`}
+            className={`glass-card p-1 group cursor-pointer relative overflow-hidden h-64`}
           >
-            <div className={`absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+            {/* Hover Gradient Background */}
+            <div className={`absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
 
-            <div className="bg-cyber-dark/80 backdrop-blur-md h-full rounded-xl p-8 border border-white/5 relative z-10 group-hover:border-transparent transition-all">
-              <div className="flex justify-between items-start mb-6">
-                <div className={`p-4 rounded-full bg-white/5 border border-white/10 group-hover:bg-white/10 transition-colors ${mod.border}`}>
-                  {mod.icon}
-                </div>
-                <ArrowRight className="w-6 h-6 text-slate-500 group-hover:text-cyber-neon transform group-hover:translate-x-2 transition-all" />
+            <div className="bg-cyber-dark/60 backdrop-blur-md h-full rounded-xl p-8 border border-white/5 relative z-10 group-hover:border-cyber-neon/30 transition-all flex flex-col justify-center items-center text-center">
+
+              <div className={`mb-6 p-4 rounded-full bg-white/5 border border-white/10 group-hover:bg-cyber-neon/10 group-hover:border-cyber-neon/50 transition-all duration-300 transform group-hover:-translate-y-2 group-hover:scale-110 ${mod.border}`}>
+                {mod.icon}
               </div>
 
-              <h3 className="text-2xl font-bold text-white mb-2 font-mono tracking-wide">{mod.title}</h3>
-              <p className="text-slate-400 text-sm leading-relaxed">{mod.desc}</p>
+              <h3 className="text-2xl font-bold text-white mb-2 font-mono tracking-wide group-hover:text-cyber-neon transition-colors">
+                {mod.title}
+              </h3>
 
-              <div className={`absolute bottom-0 left-0 h-1 w-0 group-hover:w-full bg-gradient-to-r from-cyber-neon to-cyber-purple transition-all duration-700`} />
+              <div className="h-0 opacity-0 group-hover:h-auto group-hover:opacity-100 overflow-hidden transition-all duration-500 ease-in-out">
+                <p className="text-slate-300 text-sm leading-relaxed mt-2 font-medium translate-y-4 group-hover:translate-y-0 transition-transform duration-500 delay-100">
+                  {mod.title === 'INSTANT TRANSFER' ? 'Peer-to-peer digital payments at lightspeed.' : mod.desc}
+                </p>
+              </div>
+
+              <div className={`absolute bottom-0 left-0 h-1 w-0 group-hover:w-full bg-gradient-to-r from-cyber-neon to-cyber-purple transition-all duration-500`} />
             </div>
           </motion.div>
         ))}
@@ -128,20 +137,31 @@ const Dashboard = () => {
   );
 };
 
+import { useState, useEffect } from 'react';
+import IntroAnimation from './components/ui/IntroAnimation';
+
 function App() {
+  const [showIntro, setShowIntro] = useState(true);
+
   return (
     <WalletProvider>
       <Router>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/p2p" element={<P2PPayment />} />
-            <Route path="/split" element={<BillSplit />} />
-            <Route path="/fundraise" element={<Fundraising />} />
-            <Route path="/tickets" element={<Ticketing />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Layout>
+        <AnimatePresence mode="wait">
+          {showIntro ? (
+            <IntroAnimation key="intro" onComplete={() => setShowIntro(false)} />
+          ) : (
+            <Layout key="layout">
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/p2p" element={<P2PPayment />} />
+                <Route path="/split" element={<BillSplit />} />
+                <Route path="/fundraise" element={<Fundraising />} />
+                <Route path="/tickets" element={<Ticketing />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Layout>
+          )}
+        </AnimatePresence>
       </Router>
     </WalletProvider>
   );

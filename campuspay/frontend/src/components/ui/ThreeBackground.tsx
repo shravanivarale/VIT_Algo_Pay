@@ -7,9 +7,9 @@ function Stars(props: any) {
 
     // Custom sphere generation to avoid maath NaN issues
     const sphere = useMemo(() => {
-        const positions = new Float32Array(5000 * 3);
-        const radius = 1.5;
-        for (let i = 0; i < 5000; i++) {
+        const positions = new Float32Array(2000 * 3);
+        const radius = 1.2;
+        for (let i = 0; i < 2000; i++) {
             const r = radius * Math.cbrt(Math.random());
             const theta = Math.random() * 2 * Math.PI;
             const phi = Math.acos(2 * Math.random() - 1);
@@ -27,8 +27,8 @@ function Stars(props: any) {
 
     useFrame((state, delta) => {
         if (ref.current) {
-            ref.current.rotation.x -= delta / 10;
-            ref.current.rotation.y -= delta / 15;
+            ref.current.rotation.x -= delta / 20;
+            ref.current.rotation.y -= delta / 25;
         }
     });
 
@@ -38,7 +38,7 @@ function Stars(props: any) {
                 <PointMaterial
                     transparent
                     color="#00f0ff"
-                    size={0.015}
+                    size={0.01}
                     sizeAttenuation={true}
                     depthWrite={false}
                 />
@@ -49,7 +49,7 @@ function Stars(props: any) {
 
 const ThreeBackground = () => {
     return (
-        <div className="fixed inset-0 z-[-1] bg-cyber-dark" style={{ backgroundColor: '#050510' }}>
+        <div className="fixed inset-0 z-0 bg-cyber-dark" style={{ backgroundColor: '#050510' }}>
             <Canvas camera={{ position: [0, 0, 1] }}>
                 <Stars />
                 <ambientLight intensity={0.5} />
