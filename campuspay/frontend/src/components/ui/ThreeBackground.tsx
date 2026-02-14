@@ -7,9 +7,9 @@ function Stars(props: any) {
 
     // Custom sphere generation to avoid maath NaN issues
     const sphere = useMemo(() => {
-        const positions = new Float32Array(2000 * 3);
-        const radius = 1.2;
-        for (let i = 0; i < 2000; i++) {
+        const positions = new Float32Array(1500 * 3); // Reduced count
+        const radius = 1.5; // Increased radius for spread
+        for (let i = 0; i < 1500; i++) {
             const r = radius * Math.cbrt(Math.random());
             const theta = Math.random() * 2 * Math.PI;
             const phi = Math.acos(2 * Math.random() - 1);
@@ -27,8 +27,8 @@ function Stars(props: any) {
 
     useFrame((state, delta) => {
         if (ref.current) {
-            ref.current.rotation.x -= delta / 20;
-            ref.current.rotation.y -= delta / 25;
+            ref.current.rotation.x -= delta / 40; // Slower rotation
+            ref.current.rotation.y -= delta / 50;
         }
     });
 
@@ -38,7 +38,8 @@ function Stars(props: any) {
                 <PointMaterial
                     transparent
                     color="#00f0ff"
-                    size={0.01}
+                    size={0.005} // Smaller size
+                    opacity={0.8} // Reduced opacity
                     sizeAttenuation={true}
                     depthWrite={false}
                 />

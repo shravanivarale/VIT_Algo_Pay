@@ -66,10 +66,10 @@ const IntroAnimation: React.FC<IntroProps> = ({ onComplete }) => {
         // Sequence timing
         // Step 0: "Campus Finance Reimagined" (0s - 2.5s)
         // Step 1: Particles Explode (Current Step 2 logic, but without text) (2.5s - 4.5s)
-        const t1 = setTimeout(() => setStep(1), 2500);
+        const t1 = setTimeout(() => setStep(1), 2000);
         const t2 = setTimeout(() => {
             onComplete();
-        }, 4500);
+        }, 2500); // 2.5s + 1s for particle phase
 
         return () => {
             clearTimeout(t1);
