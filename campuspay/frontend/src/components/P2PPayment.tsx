@@ -191,7 +191,7 @@ const P2PPayment: React.FC = () => {
                                             step="0.000001"
                                             required
                                         />
-                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-cyber-neon">ALGO</span>
+                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-cyber-neon"></span>
                                     </div>
                                 </div>
                             )}
