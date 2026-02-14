@@ -15,6 +15,7 @@ const Navbar: FC = () => {
         { name: 'Split Bills', path: '/split' },
         { name: 'Fundraise', path: '/fundraise' },
         { name: 'NFT Tickets', path: '/tickets' },
+        { name: 'Subscriptions', path: '/subscriptions' },
     ];
 
     return (

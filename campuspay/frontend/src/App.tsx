@@ -5,6 +5,7 @@ import P2PPayment from './components/P2PPayment';
 import BillSplit from './components/BillSplit';
 import Fundraising from './components/Fundraising';
 import Ticketing from './components/Ticketing';
+import Subscriptions from './components/Subscriptions';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Globe, Users, Ticket, Rocket } from 'lucide-react';
 
@@ -157,6 +158,7 @@ function App() {
                 <Route path="/split" element={<BillSplit />} />
                 <Route path="/fundraise" element={<Fundraising />} />
                 <Route path="/tickets" element={<Ticketing />} />
+                <Route path="/subscriptions" element={<Subscriptions />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Layout>

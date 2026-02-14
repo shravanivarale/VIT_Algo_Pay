@@ -57,17 +57,38 @@ const BillSplit: React.FC = () => {
     };
 
     const signPart = async () => {
-        if (!groupPayload || !accountAddress) return;
+        console.log("SignPart triggered...");
+        if (!groupPayload) {
+            console.error("No payload found");
+            setStatus("ERROR: EMPTY PAYLOAD");
+            return;
+        }
+        if (!accountAddress) {
+            console.error("No account connected");
+            setStatus("ERROR: WALLET NOT CONNECTED");
+            return;
+        }
+
         try {
+            console.log("Parsing payload...");
             const txnsData: string[] = JSON.parse(groupPayload);
             const txns = txnsData.map(str => algosdk.decodeUnsignedTransaction(Buffer.from(str, 'base64')));
+            console.log("Decoded transactions:", txns);
 
             const myTxnIndices = txns
-                .map((txn, index) => algosdk.encodeAddress((txn as any).from.publicKey) === accountAddress ? index : -1)
+                .map((txn, index) => {
+                    // Try both `sender` (newer SDK) and `from` (older/internal)
+                    const senderObj = (txn as any).sender || (txn as any).from;
+                    const senderAddr = senderObj ? algosdk.encodeAddress(senderObj.publicKey) : "";
+                    console.log(`Txn ${index} sender: ${senderAddr} vs My Address: ${accountAddress}`);
+                    return senderAddr === accountAddress ? index : -1;
+                })
                 .filter(index => index !== -1);
 
+            console.log("My indices:", myTxnIndices);
+
             if (myTxnIndices.length === 0) {
-                setStatus("NO SIGNABLE TRANSACTIONS FOUND FOR THIS IDENTITY.");
+                setStatus("NO SIGNABLE TRANSACTIONS FOUND FOR THIS ACCOUNT.");
                 return;
             }
 
@@ -78,13 +99,15 @@ const BillSplit: React.FC = () => {
                 return { txn, signers: [] };
             });
 
+            console.log("Requesting signature from Pera Wallet...");
             const signedParts = await peraWallet.signTransaction([signerGroup]);
+            console.log("Signed parts:", signedParts);
             setStatus("PARTIAL SIGNATURE APPENDED TO PAYLOAD.");
             // Payload ready for transmission
 
         } catch (error) {
-            console.error(error);
-            setStatus("SIGNING FAILED.");
+            console.error("Signing failed:", error);
+            setStatus(`SIGNING FAILED: ${(error as Error).message}`);
         }
     };
 
