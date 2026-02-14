@@ -29,7 +29,7 @@ const P2PPayment: React.FC = () => {
                 setReceiver(decodedText);
                 setIsScanning(false);
                 scanner.clear();
-            }, (error) => {
+            }, (_error) => {
                 // Scanning... (Suppress errors for cleaner console)
             });
 

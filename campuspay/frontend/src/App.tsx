@@ -7,7 +7,7 @@ import Fundraising from './components/Fundraising';
 import Ticketing from './components/Ticketing';
 import Subscriptions from './components/Subscriptions';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Globe, Users, Ticket, Rocket } from 'lucide-react';
+import { Globe, Users, Ticket, Rocket } from 'lucide-react';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -138,7 +138,7 @@ const Dashboard = () => {
   );
 };
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import IntroAnimation from './components/ui/IntroAnimation';
 
 function App() {

@@ -3,7 +3,7 @@ import { useWallet } from '../context/WalletContext';
 import { algodClient, waitForConfirmation } from '../utils/algorand';
 import algosdk from 'algosdk';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Ticket, Calendar, Tag, QrCode, ScanLine, Trash2 } from 'lucide-react';
+import { Ticket, Calendar, Tag, QrCode, ScanLine } from 'lucide-react';
 
 const Ticketing: React.FC = () => {
     const { isConnected, accountAddress, peraWallet } = useWallet();

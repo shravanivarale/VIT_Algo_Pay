@@ -21,7 +21,7 @@ function WarpStars({ speed = 20 }: { speed?: number }) {
         return pos;
     }, []);
 
-    useFrame((state, delta) => {
+    useFrame((_state, delta) => {
         if (ref.current) {
             // Move drops towards camera for warp effect
             const positions = ref.current.geometry.attributes.position.array;
