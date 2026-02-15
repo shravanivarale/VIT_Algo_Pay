@@ -1,9 +1,20 @@
 import React, { useState } from 'react';
 import { useWallet } from '../context/WalletContext';
-import { algodClient, waitForConfirmation } from '../utils/algorand';
+import { algodClient, waitForConfirmation, algosToMicroAlgos } from '../utils/algorand';
 import algosdk from 'algosdk';
+import { Buffer } from 'buffer';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Ticket, Calendar, Tag, QrCode, ScanLine } from 'lucide-react';
+import { Ticket, Calendar, Tag, QrCode, ScanLine, ShoppingCart } from 'lucide-react';
+import { TICKETING_ABI, TICKETING_APPROVAL, TICKETING_CLEAR } from '../utils/contractData'; // Import artifacts
+
+interface ResaleTicket {
+    id: number;
+    appId: number;
+    name: string;
+    price: number;
+    seller: string;
+    assetId: number;
+}
 
 const Ticketing: React.FC = () => {
     const { isConnected, accountAddress, peraWallet } = useWallet();
@@ -14,11 +25,9 @@ const Ticketing: React.FC = () => {
     const [status, setStatus] = useState('');
     const [activeTab, setActiveTab] = useState<'organizer' | 'resale'>('organizer');
 
-    // Mock Resale Data - Moved to state for real-time interaction
-    const [resaleTickets, setResaleTickets] = useState([
-        { id: 101, name: "Neon Nights 2026", price: 15, seller: "H3...X9" },
-        { id: 102, name: "AI Symposium VIP", price: 45, seller: "A7...B2" },
-        { id: 103, name: "Campus Hackathon Entry", price: 5, seller: "Z1...P4" },
+    // Use state for dynamic listing
+    const [resaleTickets, setResaleTickets] = useState<ResaleTicket[]>([
+        { id: 101, appId: 0, name: "Neon Nights 2026", price: 15, seller: "H3...X9", assetId: 0 }, // Demo
     ]);
 
     const createEvent = async () => {
@@ -43,42 +52,246 @@ const Ticketing: React.FC = () => {
                 suggestedParams,
             });
 
+            // Sign and submit (Array of groups)
             const signedTxn = await peraWallet.signTransaction([[{ txn, signers: [accountAddress] }]]);
-            const { txid } = await algodClient.sendRawTransaction(signedTxn).do();
+            const { txid } = await algodClient.sendRawTransaction(signedTxn[0]).do(); // Access first signed txn
 
             setStatus(`HASH: ${txid}`);
             const ptx = await waitForConfirmation(algodClient, txid, 4);
-            const assetIndex = Number(ptx.assetIndex);
+            console.log("Confirmation Result (Asset):", ptx); // Debug
+
+            // @ts-ignore
+            const assetIndex = Number(ptx['asset-index'] || ptx.assetIndex);
+
+            if (isNaN(assetIndex)) {
+                setStatus(`ASSET MINTED BUT ID NOT FOUND. Keys: ${Object.keys(ptx).join(', ')}`);
+                console.error("No asset index:", ptx);
+                return;
+            }
 
             setCreatedAssetId(assetIndex);
             setStatus(`ASSET MINTED. ID: ${assetIndex}`);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            setStatus("MINTING FAILURE.");
+            setStatus(`MINTING FAILURE: ${error.message}`);
         }
     };
 
-    const buyTicket = async () => {
-        setStatus("INTERACTING WITH SMART CONTRACT...");
-    };
+    const listTicketForResale = async () => {
+        if (!createdAssetId || !accountAddress || !ticketPrice) {
+            setStatus("MISSING ASSET OR PRICE");
+            return;
+        }
 
-    const buyResaleTicket = async (ticket: typeof resaleTickets[0]) => {
-        if (!accountAddress) return;
-        setStatus(`INITIATING ATOMIC SWAP FOR ASSET ID: ${ticket.id}...`);
+        setStatus("DEPLOYING MARKETPLACE CONTRACT...");
 
         try {
-            // Atomic Swap Logic Visualization
-            setTimeout(() => setStatus("1. PAYMENT SIGNED (YOU -> SELLER)"), 1000);
-            setTimeout(() => setStatus("2. ASSET TRANSFER SIGNED (SELLER -> YOU)"), 2000);
-            setTimeout(() => setStatus("3. ATOMIC GROUP SUBMITTED TO CHAIN"), 3000);
-            setTimeout(() => {
-                setStatus(`SUCCESS! VERIFIED SWAP: TX_${Math.random().toString(36).substr(2, 6).toUpperCase()}`);
-                // Remove the sold ticket to simulate real-time update
-                setResaleTickets(prev => prev.filter(t => t.id !== ticket.id));
-            }, 4500);
-        } catch (e) {
-            setStatus("ATOMIC SWAP FAILED");
+            const suggestedParams = await algodClient.getTransactionParams().do();
+
+            // 1. Compile Contracts
+            const approvalCompileResp = await algodClient.compile(TICKETING_APPROVAL).do();
+            const clearCompileResp = await algodClient.compile(TICKETING_CLEAR).do();
+            const approvalProgram = new Uint8Array(Buffer.from(approvalCompileResp.result, 'base64'));
+            const clearProgram = new Uint8Array(Buffer.from(clearCompileResp.result, 'base64'));
+
+            // 2. Create Application
+            const createTxn = algosdk.makeApplicationCreateTxnFromObject({
+                sender: accountAddress,
+                suggestedParams,
+                onComplete: algosdk.OnApplicationComplete.NoOpOC,
+                approvalProgram,
+                clearProgram,
+                numLocalInts: 0,
+                numLocalByteSlices: 0,
+                numGlobalInts: 2, // Price, NftId
+                numGlobalByteSlices: 1, // Creator Address
+            });
+
+            const signedCreate = await peraWallet.signTransaction([[{ txn: createTxn, signers: [accountAddress] }]]);
+            const { txid: createId } = await algodClient.sendRawTransaction(signedCreate[0]).do();
+
+            setStatus(`DEPLOYING APP: ${createId}`);
+            const result = await waitForConfirmation(algodClient, createId, 4);
+            console.log("Confirmation Result (App):", result); // Debug
+
+            // @ts-ignore
+            const appId = result['application-index'] || result.applicationIndex;
+
+            if (!appId) {
+                console.error("No App ID found in:", result);
+                throw new Error(`App ID not found. Keys: ${Object.keys(result).join(', ')}`);
+            }
+            setStatus(`MARKETPLACE DEPLOYED (ID: ${appId}). INITIALIZING...`);
+
+            // 3. Fund App (MBR ~ 0.2A) + Setup + Deposit NFT
+            // We need to group these:
+            // Txn 1: Pay App (Fund MBR)
+            // Txn 2: App Call 'setup'
+            // Txn 3: Asset Transfer (Deposit)
+
+            const appAddress = algosdk.getApplicationAddress(appId);
+            const contract = new algosdk.ABIContract(TICKETING_ABI);
+            const atc = new algosdk.AtomicTransactionComposer();
+
+            // Fund App
+            const payTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+                sender: accountAddress,
+                receiver: appAddress,
+                amount: algosToMicroAlgos(0.2), // 0.1 MBR + 0.1 for ASA Opt-in
+                suggestedParams,
+            });
+
+            // Add Payment to ATC (as a transaction argument? No, just a transaction to the group)
+            atc.addTransaction({
+                txn: payTxn, signer: async () => {
+                    // We will sign everything together
+                    return []; // Placeholder, actually Pera handles signatures
+                }
+            });
+
+            // Setup Call
+            atc.addMethodCall({
+                appID: appId,
+                method: contract.getMethodByName('setup'),
+                methodArgs: [algosToMicroAlgos(parseFloat(ticketPrice)), createdAssetId],
+                sender: accountAddress,
+                signer: async () => [], // Placeholder
+                suggestedParams,
+                onComplete: algosdk.OnApplicationComplete.NoOpOC,
+            });
+
+            // Deposit NFT
+            const axferTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+                sender: accountAddress,
+                receiver: appAddress,
+                amount: 1,
+                assetIndex: createdAssetId,
+                suggestedParams,
+            });
+
+            atc.addTransaction({ txn: axferTxn, signer: async () => [] });
+
+            // Execute Group
+            // Custom Signer for ATC that uses Pera
+            // const groupSigner = async (unsignedTxns: algosdk.Transaction[]) => {
+            //     const signerGroup = unsignedTxns.map(t => ({ txn: t, signers: [accountAddress] }));
+            //     const signed = await peraWallet.signTransaction([signerGroup]);
+            //     return signed;
+            // };
+
+            // Re-construct ATC to use the group signer properly
+            // Actually, simpler to build the group manually and sign
+            const txns = [
+                payTxn,
+                algosdk.makeApplicationNoOpTxnFromObject({
+                    sender: accountAddress,
+                    appIndex: appId,
+                    appArgs: [contract.getMethodByName('setup').getSelector(), algosdk.encodeUint64(algosToMicroAlgos(parseFloat(ticketPrice))), algosdk.encodeUint64(createdAssetId)],
+                    foreignAssets: [createdAssetId],
+                    suggestedParams,
+                    // Note: Setup args are Price, NftId. Encoding needed.
+                }),
+                axferTxn
+            ];
+
+            algosdk.assignGroupID(txns);
+            const signerGroup = txns.map(t => ({ txn: t, signers: [accountAddress] }));
+            const signedGroup = await peraWallet.signTransaction([signerGroup]);
+
+            setStatus("SENDING SETUP GROUP...");
+            const { txid: setupId } = await algodClient.sendRawTransaction(signedGroup).do();
+            await waitForConfirmation(algodClient, setupId, 4);
+
+            setStatus(`LISTED SUCCESSFULLY! CONTRACT: ${appId}`);
+
+            console.log("UPDATING RESALE LIST with:", { appId, eventName, ticketPrice, accountAddress, createdAssetId });
+
+            // Add to resale list
+            setResaleTickets(prev => {
+                const updated = [...prev, {
+                    id: Date.now(),
+                    appId: appId,
+                    name: eventName,
+                    price: parseFloat(ticketPrice),
+                    seller: accountAddress,
+                    assetId: createdAssetId!
+                }];
+                console.log("NEW RESALE LIST:", updated);
+                return updated;
+            });
+
+            // Allow listing again or reset?
+            setCreatedAssetId(null); // Remove from "Minted" view to simulate transfer
+
+        } catch (e: any) {
+            console.error("Listing Error Full Object:", e);
+            setStatus(`LISTING FAILED (See Console): ${e.message || JSON.stringify(e)}`);
+        }
+    };
+
+    const buyRealTicket = async (ticket: ResaleTicket) => {
+        if (!accountAddress) return;
+        setStatus(`BUYING ASSET ${ticket.assetId} FROM APP ${ticket.appId}...`);
+
+        try {
+            const suggestedParams = await algodClient.getTransactionParams().do();
+
+            // 1. Opt-In to Asset (Buyer)
+            // Check if already opted in? We assume not or just do it.
+            // If already opted in, this might fail (allow checking err).
+            // Better to wrap in try/catch or just proceed.
+            try {
+                const optInTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+                    sender: accountAddress,
+                    receiver: accountAddress,
+                    amount: 0,
+                    assetIndex: ticket.assetId,
+                    suggestedParams,
+                });
+
+                setStatus("OPTING IN TO ASSET...");
+                const signedOptIn = await peraWallet.signTransaction([[{ txn: optInTxn, signers: [accountAddress] }]]);
+                await algodClient.sendRawTransaction(signedOptIn[0]).do();
+                await waitForConfirmation(algodClient, optInTxn.txID(), 4);
+            } catch (e) {
+                console.log("Opt-in skipped or failed (maybe already opted in)");
+            }
+
+            // 2. Buy (Pay + App Call)
+            const payTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+                sender: accountAddress,
+                receiver: algosdk.getApplicationAddress(ticket.appId),
+                amount: algosToMicroAlgos(ticket.price),
+                suggestedParams,
+            });
+
+            const contract = new algosdk.ABIContract(TICKETING_ABI);
+            const appCallTxn = algosdk.makeApplicationNoOpTxnFromObject({
+                sender: accountAddress,
+                appIndex: ticket.appId,
+                appArgs: [contract.getMethodByName('buy_ticket').getSelector()],
+                suggestedParams,
+                foreignAssets: [ticket.assetId], // Must define Foreign Asset to send it
+            });
+
+            const txns = [payTxn, appCallTxn];
+            algosdk.assignGroupID(txns);
+            const signerGroup = txns.map(t => ({ txn: t, signers: [accountAddress] }));
+
+            setStatus("SIGNING PAYMENT...");
+            const signedGroup = await peraWallet.signTransaction([signerGroup]);
+
+            const { txid } = await algodClient.sendRawTransaction(signedGroup).do();
+            setStatus(`BUYING: ${txid}`);
+            await waitForConfirmation(algodClient, txid, 4);
+
+            setStatus(`PURCHASE SUCCESSFUL!`);
+            setResaleTickets(prev => prev.filter(t => t.id !== ticket.id));
+
+        } catch (e: any) {
+            console.error(e);
+            setStatus(`BUY FAILED: ${e.message}`);
         }
     };
 
@@ -229,6 +442,18 @@ const Ticketing: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* LIST FOR RESALE BUTTON */}
+                                    <div className="p-4 bg-green-500/10 border-t border-green-500/20">
+                                        <button
+                                            onClick={listTicketForResale}
+                                            className="w-full py-3 bg-green-500 text-black font-bold uppercase rounded-lg hover:bg-green-400 transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <ShoppingCart className="w-4 h-4" />
+                                            List for Resale
+                                        </button>
+                                    </div>
+
                                 </motion.div>
                             ) : (
                                 <div className="text-center space-y-6 opacity-50">
@@ -241,15 +466,6 @@ const Ticketing: React.FC = () => {
                                     </div>
                                 </div>
                             )}
-
-                            <div className="mt-12 w-full max-w-sm">
-                                <button
-                                    onClick={buyTicket}
-                                    className="w-full py-3 rounded-xl border border-white/10 hover:bg-white/5 text-slate-400 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest"
-                                >
-                                    Open Validator Terminal
-                                </button>
-                            </div>
                         </div>
                     </motion.div>
                 ) : (
@@ -272,13 +488,18 @@ const Ticketing: React.FC = () => {
                                     <div className="flex justify-between items-start mb-4">
                                         <div className="flex items-center gap-2">
                                             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                                            <span className="text-[10px] font-bold text-green-500 uppercase tracking-wider">Verified Resale</span>
+                                            <span className="text-[10px] font-bold text-green-500 uppercase tracking-wider">
+                                                {ticket.appId ? "Live Contract" : "Mock Listing"}
+                                            </span>
                                         </div>
                                         <Tag className="w-4 h-4 text-green-500/50" />
                                     </div>
 
                                     <h3 className="text-lg font-bold text-white font-mono mb-2">{ticket.name}</h3>
                                     <p className="text-slate-500 text-xs font-mono mb-6">Seller: {ticket.seller}</p>
+                                    {ticket.appId > 0 && (
+                                        <p className="text-green-500/70 text-[10px] font-mono mb-2">Contract ID: {ticket.appId}</p>
+                                    )}
 
                                     <div className="flex justify-between items-center bg-black/40 p-3 rounded-lg border border-white/5 mb-4">
                                         <span className="text-xs text-slate-400 font-mono">Ask Price</span>
@@ -286,10 +507,16 @@ const Ticketing: React.FC = () => {
                                     </div>
 
                                     <button
-                                        onClick={() => buyResaleTicket(ticket)}
+                                        onClick={() => {
+                                            if (ticket.appId > 0) {
+                                                buyRealTicket(ticket);
+                                            } else {
+                                                setStatus("Cannot buy demo ticket. Please Mint & List your own.");
+                                            }
+                                        }}
                                         className="w-full py-3 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-500 border border-green-500/30 hover:shadow-[0_0_15px_rgba(0,255,100,0.2)] transition-all font-mono text-xs font-bold uppercase tracking-widest"
                                     >
-                                        Atomic Buy
+                                        {ticket.appId > 0 ? "Buy Now (Atomic)" : "Demo Only"}
                                     </button>
                                 </motion.div>
                             ))}

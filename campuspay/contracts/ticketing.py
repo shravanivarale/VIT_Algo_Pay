@@ -22,7 +22,15 @@ def setup(price: abi.Uint64, nft_id: abi.Uint64):
         App.globalPut(PRICE, price.get()),
         App.globalPut(NFT_ID, nft_id.get()),
         App.globalPut(CREATOR, Txn.sender()),
-        # Opt-in to NFT logic would be needed here via InnerTxn if contract holds it
+        # Opt-in to NFT so contract can hold it
+        InnerTxnBuilder.Begin(),
+        InnerTxnBuilder.SetFields({
+            TxnField.type_enum: TxnType.AssetTransfer,
+            TxnField.xfer_asset: nft_id.get(),
+            TxnField.asset_receiver: Global.current_application_address(),
+            TxnField.asset_amount: Int(0),
+        }),
+        InnerTxnBuilder.Submit(),
     )
 
 @router.method
